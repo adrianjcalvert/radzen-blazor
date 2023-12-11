@@ -806,6 +806,37 @@ $column-draggable-shadow: 0 8px 10px 0 rgba(0, 0, 0, 0.1) !default;
         }
       }
 
+      &.rz-state-focused {
+        > td {
+          background-color: var(--rz-grid-hover-background-color);
+
+          &.rz-frozen-cell-left,
+          &.rz-frozen-cell-left-inner {
+            &:before {
+              background-color: var(--rz-grid-hover-background-color);
+            }
+          }
+
+          &.rz-frozen-cell-right {
+            &:after {
+              background-color: var(--rz-grid-hover-background-color);
+            }
+          }
+        }
+
+        > th.rz-state-focused {
+          color: var(--rz-grid-hover-color) !important;
+        }
+
+        .rz-cell-data {
+          color: var(--rz-grid-hover-color);
+        }
+
+        > .rzi {
+          color: var(--rz-grid-hover-color);
+        }
+      }
+
       &.rz-state-disabled {
         opacity: 0.5;
         pointer-events: none;

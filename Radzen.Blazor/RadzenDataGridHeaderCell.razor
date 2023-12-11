@@ -1,4 +1,5 @@
 @typeparam TItem
+@using Microsoft.JSInterop
 @using Radzen.Blazor.Rendering
 @if (RowIndex == Column.GetLevel())
 {
@@ -55,12 +56,12 @@
         @if (Grid.AllowFiltering && Column.Filterable && Grid.FilterMode == FilterMode.Advanced)
         {
                 <i @ref=@filterButton @onclick:stopPropagation="true" @onmousedown=@ToggleFilter
-                   class="@getFilterIconCss(Column)" onclick=@getFilterOpen() >
+                   class="@getFilterIconCss(Column)" onclick=@getFilterOpen() @onclick:preventDefault="true">
                    @Grid.FilterIcon
                 </i>
 
                 <Popup Lazy=@(Grid.FilterPopupRenderMode == PopupRenderMode.OnDemand) @ref=popup id="@($"{getColumnPopupID()}")" class="rz-overlaypanel"
-                    style="display:none;min-width:250px;" tabindex="0">
+                       style="display:none;min-width:250px;" @onkeydown="OnFilterPopupKeyPressed">
                         <div class="rz-overlaypanel-content">
                             @if (Column.FilterTemplate != null)
                             {
@@ -167,7 +168,7 @@ else
 
     string getFilterOpen()
     {
-        return Grid.FilterPopupRenderMode == PopupRenderMode.Initial ? $"Radzen.togglePopup(this, '{getColumnPopupID()}')" : "";
+        return Grid.FilterPopupRenderMode == PopupRenderMode.Initial ? $"Radzen.togglePopup(this, '{getColumnPopupID()}', false, null, null, true, true)" : "";
     }
 
     async Task ToggleFilter()
@@ -266,7 +267,7 @@ else
     {
         base.OnParametersSet();
 
-        if (Column != null && Grid.FilterPopupRenderMode == PopupRenderMode.OnDemand)
+        if (Column != null)
         {
             Column.headerCell = this;
         }
@@ -277,6 +278,28 @@ else
         if (popup != null)
         {
             await popup.CloseAsync(filterButton);
+        }
+    }
+
+    internal async Task OpenFilter()
+    {
+        if (Grid.FilterPopupRenderMode == PopupRenderMode.OnDemand)
+        {
+            await popup.ToggleAsync(filterButton);
+        }
+        else
+        {
+            await Grid.GetJSRuntime().InvokeVoidAsync("Radzen.togglePopup", filterButton, getColumnPopupID(), false, null, null, true, true);
+        }
+    }
+
+    async Task OnFilterPopupKeyPressed(KeyboardEventArgs args)
+    {
+        var key = args.Code ?? args.Key;
+        if (key == "Escape")
+        {
+            await CloseFilter();
+            await Grid.GetJSRuntime().InvokeVoidAsync("Radzen.focusElement", Grid.GridId());
         }
     }
 }

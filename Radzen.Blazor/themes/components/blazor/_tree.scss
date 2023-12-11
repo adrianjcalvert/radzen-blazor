@@ -76,6 +76,12 @@ $tree-transition: var(--rz-transition-all) !default;
 
 }
 
+.rz-tree > .rz-treenode-content .rz-state-focused {
+    background-color: var(--rz-tree-node-hover-background-color);
+    color: var(--rz-tree-node-hover-color);
+    border-radius: var(--rz-tree-node-selected-border-radius);
+}
+
 .rz-treenode-content {
   display: flex;
   align-items: center;

@@ -4,6 +4,8 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace Radzen.Blazor
 {
@@ -190,6 +192,74 @@ namespace Radzen.Blazor
         protected override string GetComponentCssClass()
         {
             return "rz-panel-menu";
+        }
+
+        [Inject]
+        NavigationManager NavigationManager { get; set; }
+
+        internal int focusedIndex = -1;
+        
+        bool preventKeyPress = false;
+        async Task OnKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "ArrowUp" || key == "ArrowDown")
+            {
+                preventKeyPress = true;
+
+                focusedIndex = Math.Clamp(focusedIndex + (key == "ArrowUp" ? -1 : 1), 0, AllExpandedItems.Count - 1);
+
+                await JSRuntime.InvokeVoidAsync("Element.prototype.scrollIntoViewIfNeeded.call", AllExpandedItems[focusedIndex].Element);
+            }
+            else if (key == "Space" || key == "Enter")
+            {
+                preventKeyPress = true;
+
+                if (focusedIndex >= 0 && focusedIndex < AllExpandedItems.Count)
+                {
+                    var item = AllExpandedItems[focusedIndex];
+
+                    if (item.items.Any())
+                    {
+                        await item.Toggle();
+                    }
+                    else
+                    {
+                        if (item.Path != null)
+                        {
+                            NavigationManager.NavigateTo(item.Path);
+                        }
+                        else
+                        {
+                            await item.OnClick(new MouseEventArgs());
+                        }
+                    }
+                }
+            }
+            else
+            {
+                preventKeyPress = false;
+            }
+        }
+
+        internal bool IsFocused(RadzenPanelMenuItem item)
+        {
+            return AllExpandedItems.IndexOf(item) == focusedIndex;
+        }
+
+        List<RadzenPanelMenuItem> allExpandedItems;
+        internal List<RadzenPanelMenuItem> AllExpandedItems
+        {
+            get
+            {
+                if (allExpandedItems == null)
+                {
+                    allExpandedItems = items;
+                }
+
+                return allExpandedItems;
+            }
         }
     }
 }

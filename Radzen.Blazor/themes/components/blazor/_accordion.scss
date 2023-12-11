@@ -120,7 +120,7 @@ $accordion-shadow: none !default;
   }
 }
 
-.rz-state-active {
+.rz-state-active, .rz-state-focused {
   a[role='tab'] {
     color: var(--rz-accordion-selected-color);
   }

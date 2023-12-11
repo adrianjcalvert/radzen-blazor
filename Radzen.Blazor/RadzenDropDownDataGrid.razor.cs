@@ -622,7 +622,8 @@ namespace Radzen.Blazor
                 {
                     var currentViewIndex = Multiple ? selectedIndex : items.IndexOf(selectedItem);
 
-                    var newSelectedIndex = await JSRuntime.InvokeAsync<int>("Radzen.focusTableRow", grid.UniqueID, key == "ArrowDown" || key == "ArrowRight", currentViewIndex);
+                    var result = await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", grid.UniqueID, key, currentViewIndex);
+                    var newSelectedIndex = result[0];
 
                     var item = items.ElementAtOrDefault(newSelectedIndex);
 
@@ -637,7 +638,8 @@ namespace Radzen.Blazor
                     }
                     else
                     {
-                        selectedIndex = await JSRuntime.InvokeAsync<int>("Radzen.focusTableRow", grid.UniqueID, key == "ArrowDown", currentViewIndex);
+                        result = await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", grid.UniqueID, key, currentViewIndex);
+                        var selectedIndex = result[0];
                     }
                 }
                 catch (Exception)

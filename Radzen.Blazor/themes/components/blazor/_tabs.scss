@@ -125,6 +125,12 @@ $tabs-transition: var(--rz-transition-all) !default;
     }
   }
 
+  .rz-state-focused {
+    a {
+      color: var(--rz-tabs-tab-selected-color);
+    }
+  }
+
   .rz-tabview-selected {
     background-color: var(--rz-tabs-background-color);
     position: relative;

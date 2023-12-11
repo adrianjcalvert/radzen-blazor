@@ -28,6 +28,10 @@ $profile-menu-item-icon-margin: 0 0.5rem 0 0 !default;
   --rz-profile-menu-item-icon-margin: #{$profile-menu-item-icon-margin};
 }
 
+ul.rz-profile-menu > .rz-navigation-item .rz-state-focused > .rz-navigation-item-wrapper {
+    background-color: var(--rz-profile-menu-item-hover-background-color) !important;
+}
+
 ul.rz-profile-menu {
   list-style: none;
   margin-bottom: 0;

@@ -62,6 +62,10 @@ $context-menu-box-shadow: $rz-shadow-3 !default;
   --rz-context-menu-box-shadow: #{$context-menu-box-shadow};
 }
 
+ul.rz-menu > .rz-navigation-item .rz-state-focused > .rz-navigation-item-wrapper {
+    background-color: var(--rz-menu-item-hover-background-color) !important;
+}
+
 .rz-context-menu .rz-menu {
   flex-direction: column;
 }

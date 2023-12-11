@@ -102,6 +102,9 @@ $panel-menu-toggle-icon-opacity: 1 !default;
   --rz-panel-menu-toggle-icon-opacity: #{$panel-menu-toggle-icon-opacity};
 }
 
+.rz-navigation-item.rz-state-focused > .rz-navigation-item-wrapper {
+    color: var(--rz-panel-menu-item-active-color) !important;
+}
 
 .rz-panel-menu {
   list-style: none;

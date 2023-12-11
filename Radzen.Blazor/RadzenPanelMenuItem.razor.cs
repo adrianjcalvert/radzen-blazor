@@ -102,6 +102,34 @@ namespace Radzen.Blazor
         [Parameter]
         public bool Expanded { get; set; } = false;
 
+        bool _ExpandedInternal = false;
+        bool ExpandedInternal 
+        {
+            get
+            {
+                return _ExpandedInternal;
+            }
+            set
+            {
+                if (_ExpandedInternal != value)
+                {
+                    _ExpandedInternal = value;
+
+                    if (Parent != null && Parent.AllExpandedItems != null)
+                    {
+                        if (value)
+                        {
+                            Parent.AllExpandedItems.InsertRange(Parent.AllExpandedItems.IndexOf(this) + 1, items);
+                        }
+                        else
+                        {
+                            Parent.AllExpandedItems.RemoveRange(Parent.AllExpandedItems.IndexOf(this) + 1, items.Count);
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Gets or sets a value indicating whether this <see cref="RadzenPanelMenuItem"/> is selected.
         /// </summary>
@@ -116,9 +144,9 @@ namespace Radzen.Blazor
         [Parameter]
         public RenderFragment ChildContent { get; set; }
 
-        async System.Threading.Tasks.Task Toggle()
+        internal async System.Threading.Tasks.Task Toggle()
         {
-            if (!expanded && !Parent.Multiple)
+            if (!ExpandedInternal && !Parent.Multiple)
             {
                 var itemsToSkip = new List<RadzenPanelMenuItem>();
                 var p = ParentItem;
@@ -131,24 +159,24 @@ namespace Radzen.Blazor
                 Parent.CollapseAll(itemsToSkip);
             }
 
-            expanded = !expanded;
-            await ExpandedChanged.InvokeAsync(expanded);
+            ExpandedInternal = !ExpandedInternal;
+            await ExpandedChanged.InvokeAsync(ExpandedInternal);
             StateHasChanged();
         }
 
         internal async System.Threading.Tasks.Task Collapse()
         {
-            if (expanded)
+            if (ExpandedInternal)
             {
-                expanded = false;
-                await ExpandedChanged.InvokeAsync(expanded);
+                ExpandedInternal = false;
+                await ExpandedChanged.InvokeAsync(ExpandedInternal);
                 StateHasChanged();
             }
         }
 
         string getStyle()
         {
-            string deg = expanded ? "180" : "0";
+            string deg = ExpandedInternal ? "180" : "0";
             return $@"transform: rotate({deg}deg);";
         }
 
@@ -159,12 +187,12 @@ namespace Radzen.Blazor
 
         string getItemStyle()
         {
-            return expanded ? "" : "display:none";
+            return ExpandedInternal ? "" : "display:none";
         }
 
         void Expand()
         {
-            expanded = true;
+            ExpandedInternal = true;
         }
 
         RadzenPanelMenu _parent;
@@ -175,27 +203,6 @@ namespace Radzen.Blazor
         /// <value>The click callback.</value>
         [Parameter]
         public EventCallback<MenuItemEventArgs> Click { get; set; }
-
-        /// <summary>
-        /// Gets or sets the parent.
-        /// </summary>
-        /// <value>The parent.</value>
-        [CascadingParameter]
-        public RadzenPanelMenu Parent
-        {
-            get
-            {
-                return _parent;
-            }
-            set
-            {
-                if (_parent != value)
-                {
-                    _parent = value;
-                    _parent.AddItem(this);
-                }
-            }
-        }
 
         RadzenPanelMenuItem _parentItem;
 
@@ -218,6 +225,31 @@ namespace Radzen.Blazor
                     _parentItem.AddItem(this);
 
                     EnsureVisible();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the parent.
+        /// </summary>
+        /// <value>The parent.</value>
+        [CascadingParameter]
+        public RadzenPanelMenu Parent
+        {
+            get
+            {
+                return _parent;
+            }
+            set
+            {
+                if (_parent != value)
+                {
+                    _parent = value;
+
+                    if (ParentItem == null)
+                    {
+                        _parent.AddItem(this);
+                    }
                 }
             }
         }
@@ -262,14 +294,12 @@ namespace Radzen.Blazor
             }
         }
 
-        private bool expanded = false;
-
         /// <inheritdoc />
         public override async Task SetParametersAsync(ParameterView parameters)
         {
             if (parameters.DidParameterChange(nameof(Expanded), Expanded))
             {
-                expanded = parameters.GetValueOrDefault<bool>(nameof(Expanded));
+                ExpandedInternal = parameters.GetValueOrDefault<bool>(nameof(Expanded));
             }
 
             await base.SetParametersAsync(parameters);
@@ -308,6 +338,11 @@ namespace Radzen.Blazor
                     await Click.InvokeAsync(eventArgs);
                 }
             }
+        }
+
+        internal string GetItemCssClass()
+        {
+            return $"{GetCssClass()} {(Parent.IsFocused(this) ? "rz-state-focused" : "")}".Trim();
         }
     }
 }

@@ -482,55 +482,89 @@ window.Radzen = {
     }
 
     return ul.nextSelectedIndex;
-    },
-  focusTableRow: function (gridId, isDown, startIndex, multiple) {
+  },
+  focusTableRow: function (gridId, key, rowIndex, cellIndex) {
     var grid = document.getElementById(gridId);
     if (!grid) return;
 
-    var table = grid.querySelector('.rz-grid-table').getElementsByTagName("tbody")[0];
+    var table = grid.querySelector('.rz-grid-table');
+    var tbody = table.getElementsByTagName("tbody")[0];
+    var thead = table.getElementsByTagName("thead")[0];
 
-    if (!table.rows || table.rows.length == 0) return;
+    var rows = (thead && thead.rows && thead.rows.length ? [...thead.rows] : []).concat(tbody && tbody.rows && tbody.rows.length ? [...tbody.rows] : []);
 
-    if (startIndex == undefined || startIndex == null) {
-      startIndex = -1;
-    }
+    table.nextSelectedIndex = rowIndex || 0;
+    table.nextSelectedCellIndex = cellIndex || 0;
 
-    table.nextSelectedIndex = startIndex;
-    if (isDown) {
-        while (table.nextSelectedIndex < table.rows.length - 1) {
+    if (key == 'ArrowDown') {
+        while (table.nextSelectedIndex < rows.length - 1) {
             table.nextSelectedIndex++;
-            if (!table.rows[table.nextSelectedIndex].classList.contains('rz-state-disabled'))
+            if (!rows[table.nextSelectedIndex].classList.contains('rz-state-disabled'))
                 break;
         }
-    } else {
+    } else if (key == 'ArrowUp') {
         while (table.nextSelectedIndex > 0) {
             table.nextSelectedIndex--;
-            if (!table.rows[table.nextSelectedIndex].classList.contains('rz-state-disabled'))
+            if (!rows[table.nextSelectedIndex].classList.contains('rz-state-disabled'))
+                break;
+        }
+    } else if (key == 'ArrowRight') {
+        while (table.nextSelectedCellIndex < rows[table.nextSelectedIndex].cells.length - 1) {
+            table.nextSelectedCellIndex++;
+            if (!rows[table.nextSelectedIndex].cells[table.nextSelectedCellIndex].classList.contains('rz-state-disabled'))
+                break;
+        }
+    } else if (key == 'ArrowLeft') {
+        while (table.nextSelectedCellIndex > 0) {
+            table.nextSelectedCellIndex--;
+            if (!rows[table.nextSelectedIndex].cells[table.nextSelectedCellIndex].classList.contains('rz-state-disabled'))
                 break;
         }
     }
 
-    if (!multiple) {
-        var highlighted = table.querySelectorAll('.rz-state-highlight');
+    if (key == 'ArrowDown' || key == 'ArrowUp') {
+        var highlighted = table.querySelectorAll('.rz-state-focused');
         if (highlighted.length) {
             for (var i = 0; i < highlighted.length; i++) {
-                highlighted[i].classList.remove('rz-state-highlight');
+                highlighted[i].classList.remove('rz-state-focused');
             }
+        }
+
+        if (
+            table.nextSelectedIndex >= 0 &&
+            table.nextSelectedIndex <= rows.length - 1
+        ) {
+            var row = rows[table.nextSelectedIndex];
+
+            if (!row.classList.contains('rz-state-focused')) {
+                row.classList.add('rz-state-focused');
+            }
+
+            table.parentNode.parentNode.scrollTop = rows[table.nextSelectedIndex].offsetTop - rows[table.nextSelectedIndex].offsetHeight;
+        }
+    } else if (key == 'ArrowLeft' || key == 'ArrowRight') {
+        var highlightedCells = rows[table.nextSelectedIndex].querySelectorAll('.rz-state-focused');
+        if (highlightedCells.length) {
+            for (var i = 0; i < highlightedCells.length; i++) {
+                highlightedCells[i].classList.remove('rz-state-focused');
+            }
+        }
+
+        if (
+            table.nextSelectedCellIndex >= 0 &&
+            table.nextSelectedCellIndex <= rows[table.nextSelectedCellIndex].cells.length - 1
+        ) {
+            var cell = rows[table.nextSelectedIndex].cells[table.nextSelectedCellIndex];
+
+            if (!cell.classList.contains('rz-state-focused')) {
+                cell.classList.add('rz-state-focused');
+            }
+
+            table.parentNode.parentNode.scrollLeft = rows[table.nextSelectedIndex].cells[table.nextSelectedCellIndex].offsetLeft - rows[table.nextSelectedIndex].cells[table.nextSelectedCellIndex].offsetWidth;
         }
     }
 
-    if (
-      table.nextSelectedIndex >= 0 &&
-      table.nextSelectedIndex <= table.rows.length - 1
-    ) {
-      if (!table.rows[table.nextSelectedIndex].classList.contains('rz-state-highlight')) {
-        table.rows[table.nextSelectedIndex].classList.add('rz-state-highlight');
-      }
-     
-      table.parentNode.parentNode.scrollTop = table.rows[table.nextSelectedIndex].offsetTop - table.rows[table.nextSelectedIndex].offsetHeight;
-    }
-
-    return table.nextSelectedIndex;
+    return [table.nextSelectedIndex, table.nextSelectedCellIndex];
   },
   uploadInputChange: function (e, url, auto, multiple, clear, parameterName) {
       if (auto) {
@@ -790,7 +824,7 @@ window.Radzen = {
 
       popup.style.top = top + 'px';
   },
-  openPopup: function (parent, id, syncWidth, position, x, y, instance, callback, closeOnDocumentClick = true) {
+  openPopup: function (parent, id, syncWidth, position, x, y, instance, callback, closeOnDocumentClick = true, autoFocusFirstElement = false) {
     var popup = document.getElementById(id);
     if (!popup) return;
 
@@ -942,6 +976,19 @@ window.Radzen = {
         document.removeEventListener('contextmenu', Radzen[id]);
         document.addEventListener('contextmenu', Radzen[id]);
     }
+
+    if (autoFocusFirstElement) {
+        setTimeout(function () {
+            popup.removeEventListener('keydown', Radzen.focusTrap);
+            popup.addEventListener('keydown', Radzen.focusTrap);
+
+            var focusable = Radzen.getFocusableElements(popup);
+            var firstFocusable = focusable[0];
+            if (firstFocusable) {
+                firstFocusable.focus();
+            }
+        }, 500);
+    }
   },
   closeAllPopups: function (e, id) {
     if (!Radzen.popups) return;
@@ -1014,13 +1061,13 @@ window.Radzen = {
         }, 100);
     }
   },
-  togglePopup: function (parent, id, syncWidth, instance, callback) {
+  togglePopup: function (parent, id, syncWidth, instance, callback, closeOnDocumentClick = true, autoFocusFirstElement = false) {
     var popup = document.getElementById(id);
     if (!popup) return;
     if (popup.style.display == 'block') {
       Radzen.closePopup(id, instance, callback);
     } else {
-      Radzen.openPopup(parent, id, syncWidth, null, null, null, instance, callback);
+      Radzen.openPopup(parent, id, syncWidth, null, null, null, instance, callback, closeOnDocumentClick, autoFocusFirstElement);
     }
   },
   destroyPopup: function (id) {
@@ -1068,8 +1115,8 @@ window.Radzen = {
         var lastDialog = dialogs[dialogs.length - 1];
 
         if (lastDialog) {
-            lastDialog.removeEventListener('keydown', Radzen.focusTrapDialog);
-            lastDialog.addEventListener('keydown', Radzen.focusTrapDialog);
+            lastDialog.removeEventListener('keydown', Radzen.focusTrap);
+            lastDialog.addEventListener('keydown', Radzen.focusTrap);
 
             dialog.offsetWidth = lastDialog.parentElement.offsetWidth;
             dialog.offsetHeight = lastDialog.parentElement.offsetHeight;
@@ -1101,7 +1148,7 @@ window.Radzen = {
                         selection.addRange(range);
                     }
                 } else {
-                    var focusable = Radzen.getFocusableDialogElements();
+                    var focusable = Radzen.getFocusableElements(lastDialog);
                     var firstFocusable = focusable[0];
                     if (firstFocusable) {
                         firstFocusable.focus();
@@ -1124,14 +1171,11 @@ window.Radzen = {
         document.removeEventListener('keydown', Radzen.closePopupOrDialog);
     }
   },
-  getFocusableDialogElements: function () {
-    var dialogs = document.querySelectorAll('.rz-dialog-content');
-    if (dialogs.length == 0) return [];
-    var lastDialog = dialogs[dialogs.length - 1];
-    return [...lastDialog.querySelectorAll('a, button, input, textarea, select, details, iframe, embed, object, summary dialog, audio[controls], video[controls], [contenteditable], [tabindex]')]
+  getFocusableElements: function (element) {
+    return [...element.querySelectorAll('a, button, input, textarea, select, details, iframe, embed, object, summary dialog, audio[controls], video[controls], [contenteditable], [tabindex]')]
         .filter(el => el && el.tabIndex > -1 && !el.hasAttribute('disabled') && el.offsetParent !== null);
   },
-  focusTrapDialog: function (e) {
+  focusTrap: function (e) {
     e = e || window.event;
     var isTab = false;
     if ("key" in e) {
@@ -1140,7 +1184,7 @@ window.Radzen = {
         isTab = (e.keyCode === 9);
     }
     if (isTab) {
-        var focusable = Radzen.getFocusableDialogElements();
+        var focusable = Radzen.getFocusableElements(e.target);
         var firstFocusable = focusable[0];
         var lastFocusable = focusable[focusable.length - 1];
 
