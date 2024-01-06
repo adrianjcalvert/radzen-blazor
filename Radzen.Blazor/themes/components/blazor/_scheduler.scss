@@ -593,6 +593,11 @@ $scheduler-planner-slot-height: 4.5rem !default;
         color: var(--rz-scheduler-event-color);
         background-color: var(--rz-scheduler-event-background-color)
       }
+
+      &.rz-state-focused {
+        color: var(--rz-datepicker-calendar-hover-color);
+        background: var(--rz-datepicker-calendar-hover-background-color);
+      }
     }
 
     &:hover {
